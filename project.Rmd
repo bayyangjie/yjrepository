@@ -1,0 +1,338 @@
+---
+title: "project"
+output: word_document
+date: "2023-11-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown 
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+setwd("/Users/ASUS/Library/CloudStorage/OneDrive-Personal/Desktop/Personal project/")
+```
+
+# Installing packages
+```{r}
+install.packages("directlabels")
+```
+
+# Loading libraries
+```{r}
+library(tidyverse)
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(RColorBrewer)
+library(directlabels)
+```
+
+# Importing CSV dataset
+
+```{r}
+read.csv("/Users/ASUS/Library/CloudStorage/OneDrive-Personal/Desktop/Personal project/ResaleflatpricesbasedonregistrationdatefromJan2017onwards.csv") -> resale_df
+
+View(resale_df)
+```
+
+# Exploratory Data Analysis
+
+## Checking for presence of NULL values
+```{r}
+colSums(is.na(resale_df))
+```
+No presence of NULL values in the dataset. 
+
+# Summary of dataset
+```{r}
+summary(resale_df)
+```
+
+# Structure of dataset
+```{r}
+str(resale_df)
+```
+
+# Converting column data types
+```{r}
+resale_df$block <- as.numeric(resale_df$block)
+class(resale_df$block)
+
+summary(resale_df)
+```
+
+# Summary of distinct values for 'town', 'flat type', 'flat model'
+```{r}
+distinct_town <- unique(resale_df$town)
+print(distinct_town)
+
+distinct_flat_type <- unique(resale_df$flat_type)
+print(distinct_flat_type)
+
+distinct_flat_model <- unique(resale_df$flat_model)
+print(distinct_flat_model)
+```
+
+# Assigning factors to specific string variables
+```{r}
+resale_df$town <- as.factor(resale_df$town)
+resale_df$flat_type <- as.factor(resale_df$flat_type)
+resale_df$flat_model <- as.factor(resale_df$flat_model)
+```
+
+```{r}
+str(resale_df)
+```
+
+# Plots 
+
+## Analyzing spread of resale prices range
+```{r}
+# getting the overall spread of resale prices to know the region where the prices rougly fall in 
+hist(resale_df$resale_price) -> hist_values
+midpoints <- hist_values$mids
+
+# plot histogram using barplot
+barplot(hist_values$counts, names.arg=midpoints, col='skyblue', border='black', main="Histogram of resale prices", xlab="Prices",ylab="Counts")
+```
+hist() function returns a list-like object with several components (e.g., breaks, counts, density, etc.), and you can access each of them using the $ operator.
+From this histogram we can infer that resale prices fall in the majority range of 350000 to 550000.
+
+## Studying the overall spread of floor area
+```{r}
+# getting the overall distribution of floor area of flats
+hist(resale_df$floor_area_sqm) -> hist_values_1
+midpoints_1 <- hist_values_1$mids
+
+# plot histogram using barplot
+barplot(hist_values_1$counts, names.arg=midpoints_1, col='lightgreen', border='black', main="Histogram of floor areas", xlab="Floor area (sqm)",ylab="Counts")
+```
+We can infer from the histogram plot that floor areas of HDB flats in Singapore fall mainly in the range of 85 sqm to 115 sqm.
+
+# Maximum resale price recorded in each town 
+```{r}
+result <- resale_df %>%
+  group_by(town) %>%
+  summarize(Max_value = max(resale_price))
+
+highest_max_price <- max(result$Max_value) # deriving the value of the highest maximum price and classifying it as "highest_max_price"
+max_index <- which(result$Max_value == highest_max_price) # classifying index of the highest maximum price as a string name of "max_index" 
+ 
+bar_colors <- rep("lightblue", length(result$Max_value)) # define the color for all records under "Max_value" column
+bar_colors[max_index] <- "red" # setting the color for the highest maximum price
+
+par(mar=c(10,5,4,2))
+
+# Create a barplot
+barplot(result$Max_value,
+        names.arg = result$town,
+        main = "Max Resale Price by Town",
+        cex.names = 0.7,
+        cex.axis = 0.7,
+        las=2,
+        ylim=(c(0,max(result$Max_value)+500000)),
+        col = bar_colors)
+
+# Add y-axis title with adjusted position
+mtext("Avg Resale price", side = 2, line = 4, cex = 0.9) #mtext() is used to control the x-axis and y-axis titles individually
+
+# Add x-axis title with adjusted position
+mtext("Town", side = 1, line = 7.5, cex = 0.9) #mtext() is used to control the x-axis and y-axis titles individually
+
+# Add a horizontal dotted line at the maximum value
+abline(h = max_value, col = "black", lty = 2)
+
+```
+From the barplot, we can see that Bukit Merah is the town that had the highest resale price recorded out of all the other towns since 2017.
+
+# Average resale price for each town
+```{r}
+# Group by 'town' and calculate the average value in 'resale price'
+avg_resale_prices <- resale_df %>%
+  group_by(town) %>%
+  summarize(average_value = mean(resale_price))
+
+print(avg_resale_prices)
+
+par(mar=c(9,4,4,2))
+
+barplot(height = avg_resale_prices$average_value, 
+        names.arg = avg_resale_prices$town, 
+        las = 2, 
+        cex.axis = 0.6, 
+        cex.lab = 0.6,
+        cex.names = 0.6,
+        main = "Average Resale Price by Town",
+        col = "orange",
+        ylim = (c(0, max(avg_resale_prices$average_value)+100000)))
+
+# Add y-axis title with adjusted position
+mtext("Avg Resale price", side = 2, line = 3, cex = 0.9) #mtext() is used to control the x-axis and y-axis titles individually
+
+# Add x-axis title with adjusted position
+mtext("Town", side = 1, line = 6.5, cex = 0.9) #mtext() is used to control the x-axis and y-axis titles individually
+
+```
+From the bar plot, we can see that Bukit Timah has the highest average HDB resale price.
+
+# Average price trend of 5 room flats in Bukit Timah from 2017 to 2023
+```{r}
+
+# dataframe containing only prices of 5 room flats in Bukit Timah since 2017
+subset(price_trend_df, town %in% "BUKIT TIMAH" & flat_type %in% "5 ROOM") -> bkt_timah_price
+
+# summarizing average price of the 5 room flats for each year
+avg_5rm_price_trend <- bkt_timah_price %>%
+  group_by(year) %>%
+  summarize(average_value = mean(resale_price))
+
+ggplot(avg_5rm_price_trend, aes(x=year , y=average_value)) + 
+  geom_point(color="red") +
+  labs(x = "Year", 
+        y = "Average price",
+        title = "Average Price Trend of 5 room flats in Bukit Timah",
+        subtitle = "2017-2023")+
+   theme(axis.title.x=element_text(size = 12, margin = margin(t=10), face="bold"), # face = "bold" is to bold the words
+        axis.title.y=element_text(size = 12, margin = margin(r=10), face="bold"),  # face = "bold" is to bold the words 
+        plot.title = element_text(size=15,face = "bold"))
+```
+From the scatter plot, it shows that the price of 5 room flats in Bukit Timah did not change much from 2017 to 2019 however from 2020 onwards, the prices started increasing by a huge amount as shown by the steeper gradient from 2021 to 2023. The greatest price increment was from 2022 to 2023 when the price changed from approximately $900000 to $1025000. 
+
+# Scatterplot to show the comparison in resale price of different flat models in Bukit Timah from 2017 to 2023
+```{r}
+# Extract the year value from 'month' column and creating a new column "year" that contains all the extracted years values
+resale_df$year <- as.integer(substr(resale_df$month, 1, 4))
+
+resale_df[ , c('town','flat_model','resale_price','year')] -> df_1
+
+subset(df_1 , town %in% "BUKIT TIMAH") -> df_2
+
+# Use a distinct color palette
+my_colors <- brewer.pal(7, "Set3") 
+# '7' indicates the number of different colors needed to distinguish the categories of the stacked bars
+
+ggplot(df_2 , aes(x = year , y = resale_price )) + 
+  geom_bar(aes(fill=flat_model) , 
+           stat='identity', 
+           position='dodge')+
+  scale_fill_manual(values=my_colors) +
+  labs(x = "Year",
+       y = "Average Resale Price",
+       title = "Average Resale Price by Flat Model in Bukit Timah",
+       subtitle = "2017 - 2023") +
+   theme(axis.title.x=element_text(size = 12, margin = margin(t=10), face="bold"), # face = "bold" is to bold the words
+        axis.title.y=element_text(size = 12, margin = margin(r=14), face="bold"),  # face = "bold" is to bold the words 
+        plot.title = element_text(size=15,face = "bold"))
+```
+From the barplot, it can be observed that the resale price of 'Maisonette' increased the most significantly from 2020 onwards as well as the 'Improved' flat model which increased sharply from 2022 to 2023. The price increases in these 2 flat models could have contributed to the increase in the resale value of 5 room flats in Bukit Timah from 2020 onwards.
+
+
+# Plotting scatterplot to show relationship between resale_price and floor_area_sqm of 4 rm flats in Queenstown
+```{r}
+subset(resale_df, town %in% "QUEENSTOWN" & flat_type %in% "4 ROOM") -> df_3
+ 
+ggplot(df_3 , aes(x=floor_area_sqm , y=resale_price, group=flat_type)) + geom_bar(stat='identity', fill='purple')+
+  scale_x_continuous(
+  breaks = seq(80, 140, by = 5)) +
+  labs(title = "Comparison between floor area size and resale price",
+      subtitle = "4 room flats in Queenstown",
+      x = "Floor Area Sqm",
+      y = "Resale Price")
+```
+From the barplot, we can observe that floor area ranging from 83 sqm to 95 sqm have higher resale price with the highest resale prices for 83 sqm & 90 sqm flats.
+
+# Studying the trend of resale prices of each town since 2017
+```{r}
+resale_df[, c("town" , "resale_price")] -> df_4 
+
+avg_resale_town <- df_4 %>%
+  group_by(town) %>%
+  summarize(average_value = mean(resale_price))
+
+ggplot(avg_resale_town , aes(x=town , y=average_value, fill='lightpink')) + geom_bar(stat='identity') +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, margin=margin(b=10)),
+        axis.title.y = element_text(margin=margin(r=10)),
+        legend.position="none"
+        ) +
+  labs(x="Town",
+       y="Average Resale Price",
+       title="Average Resale Price of each Town",
+       subtitle="2017 to 2023")
+```
+From the plot, we can see that Bukit Timah has the highest average resale price over the last few years since 2017. 
+
+# Trend showing the count of flat models (> 2000 flats) from 2017 - 2023
+```{r}
+resale_df[,c("flat_model" , "year")] -> df_5
+
+table_df <- df_5 %>%
+  group_by(year , flat_model) %>%
+  summarize(count_per_unique = n())
+
+table_df %>%
+  filter(count_per_unique > 2000) -> table_df_1 #filtering only flat models that have counts > 2000 from 2017 to 2023
+  
+table_df_1 %>%
+  group_by(year) %>%
+ggplot(aes(x=year , y= count_per_unique, col=flat_model, group=flat_model)) +  #specify 'group=flat_model' in aes() so that each flat model type is treated as a group and not individually. This allows geom_line() to connect the dots that are of the same flat_model type 
+  geom_point() + 
+  geom_line() +
+  labs(x="Year",
+       y="Count",
+       title="Count of each Flat Model Type Built ( > 2000 flats built)",
+       subtitle = "Trend showing from 2017 to 2023") +
+  theme(axis.title.x = element_text(margin=margin(t=10)),
+        axis.title.y = element_text(margin=margin(r=10))
+        ) 
+```
+The data frame extracted here is only for those flat models count above 2000 (i.e only display the flat models that had > 2000 built from 2017 to 2023). From the line plot, it shows that 'Improved' , 'Model A', 'New Generation', 'Premium Apartment' flat models are the models that had more than 2000 flats built over the last few years. Out of the 4, 'Model A' has the highest count of flats built each year. After 2021, the flat counts of each model type started decreasing with the 'Improved' model type dropping the most as seen from the steeper downward gradient.
+
+# Proportion of each flat type built in Clementi from 2017 to 2023
+```{r}
+subset(resale_df , town %in% "CLEMENTI") -> df_6
+
+df_6[, c("town" , "flat_type" , "year")] -> df_6
+
+ggplot(df_6, aes(x = flat_type , y = ..prop.., group = 1)) +
+  geom_bar(stat = "count", fill = "pink" , width = 0.6) +
+  geom_text(aes(label = scales::percent(..prop..)), size = 3 ,vjust = -0.5 ,stat = "count") + # Adjust size of bar labels
+  theme(axis.title.x = element_text(margin = margin(t = 10), face = "bold"),
+        axis.title.y = element_text(margin = margin(r = 10), face= "bold"),
+        plot.title = element_text(face = "bold"), # Bold main title
+        plot.subtitle = element_text(face = "bold")) + # Bold subtitle
+  labs(x = "Flat Type",
+       y = "Proportions",
+       title = "Proportion of each Flat Type in Clementi",
+       subtitle = "From 2017 to 2023",
+       ) 
+  theme_minimal()
+```
+From the bar plot, it shows that 3-room and 4-room flats form the majority of flat types built in Clementi from 2017 to 2023 with 3-room flats being the highest number of flats built (45.7%). From summary(summary(df_6$flat_type)), Clementi only has 2RM/3RM/4RM/5RM/Executive flat types.
+
+# Density plot showing the trend in resale price for 4 room flats from 2017 to 2023
+```{r}
+resale_df[,c("town" , "flat_type" , "resale_price" , "year")] -> df_7
+
+my_palette <- brewer.pal(7 , "Set1")
+
+ggplot(df_7 , aes(x=resale_price , fill=flat_type)) + 
+  geom_density(alpha = 0.5) +
+  scale_fill_manual(values=my_palette) +
+  labs(x = "Resale Price",
+       y = "Density",
+       title = "Trend of Resale Price for each Flat Type",
+       subtitle = "2017 to 2023") +
+  theme(axis.title.x = element_text(margin = margin(t = 10), face = "bold"),
+        axis.title.y = element_text(margin = margin(r = 10), face= "bold"),
+        plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(face = "bold")) +
+  scale_x_continuous(breaks = seq(0, 1500000, by = 200000))
+```
+From the density plot, we can see that 4 room flats have the widest spread in terms of resale prices while the 1 room flats have the smallest spread. In terms of density levels, the highest density occurs within the range of 157000 to 251000 SGD, suggesting that there is highest demand for flats within that price range.
